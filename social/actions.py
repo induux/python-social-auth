@@ -3,6 +3,8 @@ from social.utils import sanitize_redirect, user_is_authenticated, \
                          user_is_active, partial_pipeline_data, setting_url
 from social.apps.django_app.default.models import ObjectTokenSocialAuth
 from django.contrib.contenttypes.models import ContentType, ContentTypeManager
+from django.core.exceptions import DoesNotExist
+from django.conf import settings
 
 def do_auth(backend, redirect_name='next'):
     # Save any defined next value into session
@@ -33,11 +35,14 @@ def do_complete(backend, login, user=None, redirect_name='next',
     user = is_authenticated and user or None
 
     if user and backend.strategy.session_get('token'):
-        mapper = ObjectTokenSocialAuth.objects.get(token=backend.strategy.session_get('token'))
-        print(vars(mapper))
-        user_type = ContentTypeManager().get_for_id(mapper.content_type_id)
-        mapper.user = user_type.get_object_for_this_type(pk=mapper.object_id)
-        mapper.delete()
+        try:
+            mapper = ObjectTokenSocialAuth.objects.get(token=backend.strategy.session_get('token'))
+            user_type = ContentType.objects.get(pk=mapper.content_type_id)
+            user = user_type.get_object_for_this_type(pk=mapper.object_id)
+            mapper.delete()
+        except DoesNotExist:
+            if settings.DEBUG:
+                print("Object Token Social Auth not found")
 
     partial = partial_pipeline_data(backend, user, *args, **kwargs)
     if partial:
@@ -51,7 +56,7 @@ def do_complete(backend, login, user=None, redirect_name='next',
     redirect_value = backend.strategy.session_get(redirect_name, '') or \
                      data.get(redirect_name, '')
 
-    user_model = backend.strategy.storage.user.user_model()
+    user_model = user_type.model_class()
     if user and not isinstance(user, user_model):
         return user
 

@@ -68,7 +68,8 @@ class UserSocialAuth(models.Model, DjangoUserMixin):
 
     @classmethod
     def user_model(cls):
-        user_model = UserSocialAuth._meta.get_field('content_object').rel.to
+
+
         if isinstance(user_model, six.string_types):
             app_label, model_name = user_model.split('.')
             return models.get_model(app_label, model_name)

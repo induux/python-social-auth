@@ -19,6 +19,9 @@ def social_user(backend, uid, user=None, *args, **kwargs):
     provider = backend.name
     social = backend.strategy.storage.user.get_social_auth(provider, uid)
     if social:
+        user_type = ContentType.objects.get(pk=social.content_type_id)
+        social.user = user_type.get_object_for_this_type(pk=social.object_id)
+
         if user and social.user != user:
             msg = 'This {0} account is already in use.'.format(provider)
             raise AuthAlreadyAssociated(backend, msg)
@@ -40,13 +43,11 @@ def associate_user(backend, uid, user=None, social=None, *args, **kwargs):
             social.user = user_type.get_object_for_this_type(pk=social.object_id)
 
         except Exception as err:
-            print(err)
             if not backend.strategy.storage.is_integrity_error(err):
                 raise
             # Protect for possible race condition, those bastard with FTL
             # clicking capabilities, check issue #131:
             #   https://github.com/omab/django-social-auth/issues/131
-            print("------------------------------------------------------------------------------------------------")
             return social_user(backend, uid, user, *args, **kwargs)
         else:
             return {'social': social,
