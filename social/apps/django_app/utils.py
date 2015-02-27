@@ -5,12 +5,14 @@ from functools import wraps
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.http import Http404
+import bcrypt
 
 from social.utils import setting_name, module_member
 from social.exceptions import MissingBackend
 from social.strategies.utils import get_strategy
 from social.backends.utils import get_backend
-
+from social.apps.django_app.default.models import ObjectTokenSocialAuth
+from django.db.models.loading import get_model
 
 BACKENDS = settings.AUTHENTICATION_BACKENDS
 STRATEGY = getattr(settings, setting_name('STRATEGY'),
@@ -73,3 +75,14 @@ class BackendWrapper(object):
 def strategy(*args, **kwargs):
     warnings.warn('@strategy decorator is deprecated, use @psa instead')
     return psa(*args, **kwargs)
+
+
+def generate_token(obj):
+    token = bcrypt.gensalt(16)
+    if ObjectTokenSocialAuth.objects.filter(object_id=obj.id).exists():
+        mapping = ObjectTokenSocialAuth.objects.get(object_id=obj.id)
+        mapping.token = token
+        mapping.save()
+    else:
+        ObjectTokenSocialAuth(content_object=obj, token=token).save()
+    return token

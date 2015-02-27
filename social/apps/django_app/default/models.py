@@ -4,6 +4,8 @@ import six
 from django.db import models
 from django.conf import settings
 from django.db.utils import IntegrityError
+from django.contrib.contenttypes.fields import GenericForeignKey
+from django.contrib.contenttypes.models import ContentType
 
 from social.utils import setting_name
 from social.storage.django_orm import DjangoUserMixin, \
@@ -14,9 +16,6 @@ from social.storage.django_orm import DjangoUserMixin, \
 from social.apps.django_app.default.fields import JSONField
 
 
-USER_MODEL = getattr(settings, setting_name('USER_MODEL'), None) or \
-             getattr(settings, 'AUTH_USER_MODEL', None) or \
-             'auth.User'
 UID_LENGTH = getattr(settings, setting_name('UID_LENGTH'), 255)
 NONCE_SERVER_URL_LENGTH = getattr(
     settings, setting_name('NONCE_SERVER_URL_LENGTH'), 255)
@@ -26,15 +25,27 @@ ASSOCIATION_HANDLE_LENGTH = getattr(
     settings, setting_name('ASSOCIATION_HANDLE_LENGTH'), 255)
 
 
+class ObjectTokenSocialAuth(models.Model):
+
+    content_type = models.ForeignKey(ContentType, null=True, blank=True)
+    object_id = models.PositiveIntegerField(null=True, blank=True)
+    content_object = GenericForeignKey('content_type', 'object_id')
+    token = models.CharField(max_length=32)
+
+    class Meta:
+        """Meta data"""
+
+        db_table = 'social_auth_object_token'
+
+
 class UserSocialAuth(models.Model, DjangoUserMixin):
     """Social Auth association model"""
-    user = models.ForeignKey(USER_MODEL, related_name='social_auth')
+    content_type = models.ForeignKey(ContentType, null=True, blank=True)
+    object_id = models.PositiveIntegerField(null=True, blank=True)
+    content_object = GenericForeignKey('content_type', 'object_id')
     provider = models.CharField(max_length=32)
     uid = models.CharField(max_length=UID_LENGTH)
     extra_data = JSONField()
-
-    def __str__(self):
-        return str(self.user)
 
     class Meta:
         """Meta data"""
@@ -44,8 +55,8 @@ class UserSocialAuth(models.Model, DjangoUserMixin):
     @classmethod
     def get_social_auth(cls, provider, uid):
         try:
-            return cls.objects.select_related('user').get(provider=provider,
-                                                          uid=uid)
+            return cls.objects.select_related('content_object').get(provider=provider,
+                                                                    uid=uid)
         except UserSocialAuth.DoesNotExist:
             return None
 
@@ -57,7 +68,7 @@ class UserSocialAuth(models.Model, DjangoUserMixin):
 
     @classmethod
     def user_model(cls):
-        user_model = UserSocialAuth._meta.get_field('user').rel.to
+        user_model = UserSocialAuth._meta.get_field('content_object').rel.to
         if isinstance(user_model, six.string_types):
             app_label, model_name = user_model.split('.')
             return models.get_model(app_label, model_name)

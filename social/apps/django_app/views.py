@@ -16,6 +16,7 @@ NAMESPACE = getattr(settings, setting_name('URL_NAMESPACE'), None) or 'social'
 @never_cache
 @psa('{0}:complete'.format(NAMESPACE))
 def auth(request, backend):
+    print("this is a test")
     return do_auth(request.backend, redirect_name=REDIRECT_FIELD_NAME)
 
 

@@ -1,7 +1,8 @@
 from social.p3 import quote
 from social.utils import sanitize_redirect, user_is_authenticated, \
                          user_is_active, partial_pipeline_data, setting_url
-
+from social.apps.django_app.default.models import ObjectTokenSocialAuth
+from django.contrib.contenttypes.models import ContentType, ContentTypeManager
 
 def do_auth(backend, redirect_name='next'):
     # Save any defined next value into session
@@ -28,9 +29,15 @@ def do_auth(backend, redirect_name='next'):
 def do_complete(backend, login, user=None, redirect_name='next',
                 *args, **kwargs):
     data = backend.strategy.request_data()
-
     is_authenticated = user_is_authenticated(user)
     user = is_authenticated and user or None
+
+    if user and backend.strategy.session_get('token'):
+        mapper = ObjectTokenSocialAuth.objects.get(token=backend.strategy.session_get('token'))
+        print(vars(mapper))
+        user_type = ContentTypeManager().get_for_id(mapper.content_type_id)
+        mapper.user = user_type.get_object_for_this_type(pk=mapper.object_id)
+        mapper.delete()
 
     partial = partial_pipeline_data(backend, user, *args, **kwargs)
     if partial:

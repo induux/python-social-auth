@@ -96,7 +96,7 @@ class DjangoUserMixin(UserMixin):
     def create_social_auth(cls, user, uid, provider):
         if not isinstance(uid, six.string_types):
             uid = str(uid)
-        return cls.objects.create(user=user, uid=uid, provider=provider)
+        return cls.objects.create(content_object=user, uid=uid, provider=provider)
 
 
 class DjangoNonceMixin(NonceMixin):

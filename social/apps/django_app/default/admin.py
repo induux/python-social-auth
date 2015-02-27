@@ -9,9 +9,9 @@ from social.apps.django_app.default.models import UserSocialAuth, Nonce, \
 
 class UserSocialAuthOption(admin.ModelAdmin):
     """Social Auth user options"""
-    list_display = ('user', 'id', 'provider', 'uid')
+    list_display = ('content_object', 'id', 'provider', 'uid')
     list_filter = ('provider',)
-    raw_id_fields = ('user',)
+    raw_id_fields = ('content_type',)
     list_select_related = True
 
     def get_search_fields(self, request=None):
