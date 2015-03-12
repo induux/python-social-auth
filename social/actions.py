@@ -3,7 +3,7 @@ from social.utils import sanitize_redirect, user_is_authenticated, \
                          user_is_active, partial_pipeline_data, setting_url
 from social.apps.django_app.default.models import ObjectTokenSocialAuth
 from django.contrib.contenttypes.models import ContentType, ContentTypeManager
-from django.core.exceptions import DoesNotExist
+from django.core.exceptions import ObjectDoesNotExist
 from django.conf import settings
 
 def do_auth(backend, redirect_name='next'):
@@ -40,7 +40,7 @@ def do_complete(backend, login, user=None, redirect_name='next',
             user_type = ContentType.objects.get(pk=mapper.content_type_id)
             user = user_type.get_object_for_this_type(pk=mapper.object_id)
             mapper.delete()
-        except DoesNotExist:
+        except ObjectDoesNotExist:
             if settings.DEBUG:
                 print("Object Token Social Auth not found")
 
