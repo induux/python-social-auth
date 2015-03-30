@@ -118,9 +118,11 @@ Social backends
    twilio
    twitch
    twitter
+   vend
    vimeo
    vk
    weibo
+   wunderlist
    xing
    yahoo
    yammer
