@@ -55,8 +55,8 @@ class UserSocialAuth(models.Model, DjangoUserMixin):
     @classmethod
     def get_social_auth(cls, provider, uid):
         try:
-            return cls.objects.select_related('content_object').get(provider=provider,
-                                                                    uid=uid)
+            return cls.objects.get(provider=provider,
+                                   uid=uid)
         except UserSocialAuth.DoesNotExist:
             return None
 
